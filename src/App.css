@@ -1,3 +1,12 @@
 .App {
   text-align: center;
 }
+
+.columns {
+  display: flex;
+  justify-content: space-around;
+}
+
+.vs {
+  font-size: 60px;
+}

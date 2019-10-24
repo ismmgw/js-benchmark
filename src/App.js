@@ -1,4 +1,5 @@
 import React, { Fragment } from 'react';
+import hardFunc from './Buisnes/hardFunc';
 import testWorker from './Workers/testWorker';
 import WebWorker from './Workers/WebWorker';
 import { Loader } from './Components/Loader';
@@ -8,133 +9,131 @@ import './App.css';
 
 class App extends React.Component {
 
-  state = {
-    calculatingOnGoing: false,
-    calculatingResult: null,
-    calculatingTime: null,
-  };
+    state = {
+        calcHardOnGoing: false,
+        calcWorkOnGoing: false,
+        calcHardResult: null,
+        calcWorkResult: null,
+        calcHardTime: null,
+        calcWorkTime: null,
+    };
 
-  worker = null;
+    worker = null;
 
-  constructor(props) {
-    super(props);
-    this.inputState = React.createRef();
-  }
-
-  componentDidMount() {
-    this.worker = new WebWorker(testWorker);
-    this.worker.onmessage = this.handleWorkerResult;
-    this.worker.onerror = this.handleWorkerError;
-  }
-
-  handleWorkerError = (e) => {
-      this.setState({
-          calculatingOnGoing: false,
-          calculatingResult: 'ОШИБКА В ВОРКЕРЕ',
-          calculatingTime: '',
-      });
-  };
-
-  handleClick = (functionName) => () => {
-    const inputValue = this.inputState.current.value;
-    this.setState({ calculatingOnGoing: true }, () => {
-        setTimeout(() => this[functionName](this.onEndCalculating, inputValue), 0);
-    });
-  };
-
-  handleWorkerResult = (e) => {
-      this.onEndCalculating(e.data.res, e.data.time);
-  };
-
-  onEndCalculating = (res, time) => {
-    this.setState({
-        calculatingOnGoing: false,
-        calculatingResult: res,
-        calculatingTime: time,
-    });
-  };
-
-  calculateHard = (cb, val) => {
-    const startTime = performance.now();
-    let res = 0;
-    for (let i = 0; i < val; i++) {
-      res += 1;
-      res += res % 2;
+    constructor(props) {
+        super(props);
+        this.inputState = React.createRef();
     }
-    const endTime = performance.now() - startTime;
-    console.log('i here ', endTime);
-    cb(res, endTime);
-  };
 
-  calculateHardThisTimeout = (cb, val) => {
-      const startTime = Date.now();
-      let res = 0;
-      let i = 0;
+    componentDidMount() {
+        this.worker = new WebWorker(testWorker);
+        this.worker.onmessage = this.handleWorkerResult;
+        this.worker.onerror = this.handleWorkerError;
+    }
 
-      function tick() {
-          setTimeout(() => {
-              res += 1;
-              res += res % 2;
-              i++;
-              if (i < val) {
-                  return tick();
-              }
-              cb(res, Date.now() - startTime);
-          }, 0);
-      }
+    handleWorkerError = (e) => {
+        this.setState({
+            calcWorkOnGoing: false,
+            calcWorkResult: 'ОШИБКА В ВОРКЕРЕ',
+            calcWorkTime: '',
+        });
+    };
 
-      tick();
-  };
+    handleClick = (functionName) => () => {
+        const inputValue = this.inputState.current.value;
+        this[functionName](inputValue);
+    };
 
-  calculateInWorker = (cb, val) => {
-      this.worker.postMessage([val, 'Понеслась!!!']);
-  };
+    handleWorkerResult = (e) => {
+        this.setState({
+            calcWorkOnGoing: false,
+            calcWorkResult: e.data.res,
+            calcWorkTime: e.data.time,
+        });
+    };
 
-  render() {
-    return (
-        <div className="App">
-            {this.state.calculatingResult !== null &&
-                <Fragment>
-                    <div>Результат вычислений: {this.state.calculatingResult}</div>
-                    <div>Время вычислений: {this.state.calculatingTime}</div>
-                </Fragment>
-            }
-            {this.state.calculatingOnGoing ?
-                <div>
-                    Тяжёлые вычисления в процессе<Loader />
+    calculateHard = (iterations) => {
+        this.setState({ calcHardOnGoing: true }, () => {
+            setTimeout(() => {
+                const startTime = performance.now();
+                const calcHardResult = hardFunc(iterations);
+                const calcHardTime = performance.now() - startTime;
+                this.setState({
+                    calcHardResult,
+                    calcHardTime,
+                    calcHardOnGoing: false,
+                });
+            }, 0);
+        });
+    };
+
+    calculateInWorker = (iterations) => {
+        this.setState({ calcWorkOnGoing: true });
+        this.worker.postMessage([iterations, 'Понеслась!!!']);
+    };
+
+    calculateHardAndWorker = (iterations) => {
+        this.calculateInWorker(iterations);
+        this.calculateHard(iterations);
+    };
+
+    render() {
+        return (
+            <div className="App">
+                <h1>Сравнение блокирующих и не блокирующих вычислений</h1>
+                <div className="columns" >
+                    <div>
+                        <div><h2>Блокирующе вычисление</h2></div>
+                        <div>Результат вычислений: {this.state.calcHardResult}</div>
+                        <div>Время вычислений: {this.state.calcHardTime}</div>
+                    </div>
+                    <div>
+                        <div className="vs" >VS</div>
+                        {this.state.calcHardTime && this.state.calcWorkTime &&
+                        <div>разница в {(this.state.calcWorkTime / this.state.calcHardTime).toFixed(1)} раз</div>
+                        }
+                    </div>
+                    <div>
+                        <div><h2>Вычисление в воркере</h2></div>
+                        <div>Результат вычислений: {this.state.calcWorkResult}</div>
+                        <div>Время вычислений: {this.state.calcWorkTime}</div>
+                    </div>
                 </div>
-                :
-                <Fragment>
-                  <div>
-                      <label htmlFor="count" >Кол-во итераций</label>
-                      <input type="number" ref={this.inputState} name="count" defaultValue="10000000"/>
-                  </div>
-                  <div>
-                    <button
-                      onClick={this.handleClick('calculateHard')}
-                    >
-                        Начать тяжёлые вычисления
-                    </button>
-                  </div>
-                    {/*{<div>
-                    <button
-                      onClick={this.handleClick('calculateHardThisTimeout')}
-                    >
-                      Начать тяжёлые вычисления c таймаутами
-                    </button>
-                  </div>*/}
-                  <div>
-                      <button
-                          onClick={this.handleClick('calculateInWorker')}
-                      >
-                          Начать тяжёлые вычисления в воркере
-                      </button>
-                  </div>
-                </Fragment>
-            }
-        </div>
-    );
-  }
+                <div>
+                    <label htmlFor="count">Кол-во итераций</label>
+                    <input type="number" ref={this.inputState} name="count" defaultValue="10000000"/>
+                </div>
+                <div className="columns">
+                    <div>
+                        <button
+                            onClick={this.handleClick('calculateHard')}
+                        >
+                            Начать тяжёлые вычисления
+                        </button>
+                    </div>
+                    <div>
+                        <button
+                            onClick={this.handleClick('calculateHardAndWorker')}
+                        >
+                            Начать оба вычисления одновременно
+                        </button>
+                    </div>
+                    <div>
+                        <button
+                            onClick={this.handleClick('calculateInWorker')}
+                        >
+                            Начать тяжёлые вычисления в воркере
+                        </button>
+                    </div>
+                </div>
+                {(this.state.calcHardOnGoing || this.state.calcWorkOnGoing) &&
+                    <div>
+                        Тяжёлые вычисления в процессе<Loader/>
+                    </div>
+                }
+            </div>
+        );
+    }
 }
 
 export default App;

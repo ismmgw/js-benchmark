@@ -3,17 +3,15 @@ export default () => {
   self.addEventListener('message', (e) => { // eslint-disable-line no-restricted-globals
     if (!e) return;
 
-      const a = performance.now();
-      console.log('start');
+      const startTime = performance.now();
       let res = 0;
       for (let i = 0; i < e.data[0]; i++) {
-        res += 1;
-        res += res % 2;
+          res += 1;
+          res += res % 2;
       }
-      const endTime = (performance.now() - a) / 1000;
-      console.log('end ', endTime);
+      const time = (performance.now() - startTime);
 
-      postMessage({ res, time: endTime });
+      postMessage({ res, time });
 
   }, false);
 };
