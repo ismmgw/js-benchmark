@@ -1,11 +1,10 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 import hardFunc from './Buisnes/hardFunc';
 import testWorker from './Workers/testWorker';
 import WebWorker from './Workers/WebWorker';
 import { Loader } from './Components/Loader';
 import './App.css';
 
-//const MAX_I = 1300000000;
 
 class App extends React.Component {
 
@@ -89,9 +88,6 @@ class App extends React.Component {
                     </div>
                     <div>
                         <div className="vs" >VS</div>
-                        {this.state.calcHardTime && this.state.calcWorkTime &&
-                        <div>разница в {(this.state.calcWorkTime / this.state.calcHardTime).toFixed(1)} раз</div>
-                        }
                     </div>
                     <div>
                         <div><h2>Вычисление в воркере</h2></div>
